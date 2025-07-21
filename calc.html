@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Calculator</title>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+    <div class="calculator">
+        <div class="display-container">
+            <div class="history" id="history"></div>
+            <div class="display" id="display">0</div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-clear" onclick="clearAll()">AC</button>
+            <button class="btn-clear" onclick="clearEntry()">CE</button>
+            <button class="btn-function" onclick="appendFunction('sqrt(')">√</button>
+            <button class="btn-operator" onclick="appendOperator('/')">÷</button>
+            
+            <button class="btn-function" onclick="appendFunction('pow(')">x²</button>
+            <button class="btn-function" onclick="appendFunction('sin(')">sin</button>
+            <button class="btn-function" onclick="appendFunction('cos(')">cos</button>
+            <button class="btn-operator" onclick="appendOperator('*')">×</button>
+            
+            <button class="btn-function" onclick="appendFunction('log(')">log</button>
+            <button class="btn-function" onclick="appendFunction('ln(')">ln</button>
+            <button class="btn-function" onclick="appendOperator('(')">(</button>
+            <button class="btn-operator" onclick="appendOperator('-')">−</button>
+            
+            <button class="btn-number" onclick="appendNumber('7')">7</button>
+            <button class="btn-number" onclick="appendNumber('8')">8</button>
+            <button class="btn-number" onclick="appendNumber('9')">9</button>
+            <button class="btn-operator" onclick="appendOperator('+')">+</button>
+            
+            <button class="btn-number" onclick="appendNumber('4')">4</button>
+            <button class="btn-number" onclick="appendNumber('5')">5</button>
+            <button class="btn-number" onclick="appendNumber('6')">6</button>
+            <button class="btn-function" onclick="appendOperator(')')">)</button>
+            
+            <button class="btn-number" onclick="appendNumber('1')">1</button>
+            <button class="btn-number" onclick="appendNumber('2')">2</button>
+            <button class="btn-number" onclick="appendNumber('3')">3</button>
+            <button class="btn-function" onclick="insertConstant('pi')">π</button>
+            
+            <button class="btn-decimal" onclick="appendDecimal()">.</button>
+            <button class="btn-number" onclick="appendNumber('0')">0</button>
+            <button class="btn-equals" onclick="calculate()">=</button>
+        </div>
+    </div>
+
+    <script>
+        let currentInput = '0';
+        let shouldResetDisplay = false;
+        let lastResult = null;
+
+        const display = document.getElementById('display');
+        const history = document.getElementById('history');
+
+        function updateDisplay() {
+            display.textContent = currentInput;
+            display.classList.remove('error');
+        }
+
+        function updateHistory(expression, result) {
+            history.textContent = `${expression} = ${result}`;
+        }
+
+        function appendNumber(num) {
+            if (shouldResetDisplay || currentInput === '0') {
+                currentInput = num;
+                shouldResetDisplay = false;
+            } else {
+                currentInput += num;
+            }
+            updateDisplay();
+        }
+
+        function appendOperator(op) {
+            if (shouldResetDisplay) {
+                shouldResetDisplay = false;
+            }
+            
+            // Replace display operators with calculation operators
+            let calcOp = op;
+            if (op === '×') calcOp = '*';
+            if (op === '÷') calcOp = '/';
+            if (op === '−') calcOp = '-';
+            
+            currentInput += calcOp;
+            updateDisplay();
+        }
+
+        function appendFunction(func) {
+            if (shouldResetDisplay || currentInput === '0') {
+                currentInput = func;
+                shouldResetDisplay = false;
+            } else {
+                currentInput += func;
+            }
+            updateDisplay();
+        }
+
+        function appendDecimal() {
+            if (shouldResetDisplay) {
+                currentInput = '0.';
+                shouldResetDisplay = false;
+            } else if (!currentInput.includes('.')) {
+                currentInput += '.';
+            }
+            updateDisplay();
+        }
+
+        function insertConstant(constant) {
+            let value = '';
+            if (constant === 'pi') {
+                value = Math.PI.toString();
+            }
+            
+            if (shouldResetDisplay || currentInput === '0') {
+                currentInput = value;
+                shouldResetDisplay = false;
+            } else {
+                currentInput += value;
+            }
+            updateDisplay();
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            history.textContent = '';
+            shouldResetDisplay = false;
+            updateDisplay();
+        }
+
+        function clearEntry() {
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplay();
+        }
+
+        function calculate() {
+            try {
+                let expression = currentInput;
+                let originalExpression = expression;
+                
+                // Replace function names with Math equivalents
+                expression = expression.replace(/sqrt\(/g, 'Math.sqrt(');
+                expression = expression.replace(/sin\(/g, 'Math.sin(');
+                expression = expression.replace(/cos\(/g, 'Math.cos(');
+                expression = expression.replace(/tan\(/g, 'Math.tan(');
+                expression = expression.replace(/log\(/g, 'Math.log10(');
+                expression = expression.replace(/ln\(/g, 'Math.log(');
+                expression = expression.replace(/pow\(/g, 'Math.pow(');
+                
+                // Handle power function specially
+                expression = expression.replace(/pow\(([^,]+)\)/g, 'Math.pow($1, 2)');
+                
+                // Evaluate the expression
+                let result = eval(expression);
+                
+                if (isNaN(result) || !isFinite(result)) {
+                    throw new Error('Invalid calculation');
+                }
+                
+                // Format the result
+                if (result % 1 === 0) {
+                    result = result.toString();
+                } else {
+                    result = parseFloat(result.toPrecision(10)).toString();
+                }
+                
+                updateHistory(originalExpression, result);
+                currentInput = result;
+                lastResult = result;
+                shouldResetDisplay = true;
+                updateDisplay();
+                
+            } catch (error) {
+                display.textContent = 'Error';
+                display.classList.add('error');
+                currentInput = '0';
+                shouldResetDisplay = true;
+            }
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', function(e) {
+            if (e.key >= '0' && e.key <= '9') {
+                appendNumber(e.key);
+            } else if (e.key === '.') {
+                appendDecimal();
+            } else if (e.key === '+') {
+                appendOperator('+');
+            } else if (e.key === '-') {
+                appendOperator('-');
+            } else if (e.key === '*') {
+                appendOperator('*');
+            } else if (e.key === '/') {
+                e.preventDefault();
+                appendOperator('/');
+            } else if (e.key === 'Enter' || e.key === '=') {
+                calculate();
+            } else if (e.key === 'Escape') {
+                clearAll();
+            } else if (e.key === 'Backspace') {
+                clearEntry();
+            } else if (e.key === '(') {
+                appendOperator('(');
+            } else if (e.key === ')') {
+                appendOperator(')');
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+    </script>
+   <footer class="footer">
+  © 2025 Satyarthi Gautam. Crafted with passion and innovation.
+</footer>
+</body>
+</html>
